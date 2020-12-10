@@ -50,6 +50,7 @@
 #include "ringbuffer/visibility.h"
 #include "ringbuffer/types.h"
 
+#include <chrono>
 
 namespace ringbuffer {
 
@@ -93,7 +94,7 @@ namespace ringbuffer {
         WriteSpan(WriteSpan&& )                 = delete;
         WriteSpan& operator=(WriteSpan&& )      = delete;
 
-        WriteSpan(const std::shared_ptr<Ring>& ring, std::size_t size, bool nonblocking);
+        WriteSpan(const std::shared_ptr<Ring>& ring, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         ~WriteSpan() override;
 
         WriteSpan* commit(std::size_t size);

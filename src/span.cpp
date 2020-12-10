@@ -58,9 +58,9 @@ namespace ringbuffer {
     std::size_t Span::nringlet() const { return m_ring->current_nringlet(); }
 
 
-    WriteSpan::WriteSpan(const std::shared_ptr<Ring>& ring, std::size_t size, bool nonblocking)
+    WriteSpan::WriteSpan(const std::shared_ptr<Ring>& ring, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout)
             : Span(ring, size), m_begin(0), m_commit_size(size), m_data(nullptr) {
-        this->ring()->reserve_span(size, &m_begin, &m_data, nonblocking);
+        this->ring()->reserve_span(size, &m_begin, &m_data, nonblocking, timeout);
     }
 
     WriteSpan* WriteSpan::commit(std::size_t size) {
@@ -83,6 +83,7 @@ namespace ringbuffer {
             : Span(sequence->ring(), requested_size),
               m_sequence(sequence), m_begin(0), m_data(nullptr) {
         std::size_t returned_size = requested_size;
+        // @todo: this call potentially blocks until data can read
         this->ring()->acquire_span(sequence, offset, &returned_size, &m_begin, &m_data);
         this->set_base_size(returned_size);
     }

@@ -341,7 +341,7 @@ namespace ringbuffer {
         cuda::streamSynchronize();
     }
 
-    bool Ring::_advance_reserve_head(state::unique_lock_type& lock, std::size_t size, bool nonblocking) {
+    RBStatus Ring::_advance_reserve_head(state::unique_lock_type& lock, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout) {
         auto& state = get_state();
         // This waits until all guarantees have caught up to the new valid
         //   buffer region defined by _reserve_head, and then pulls the tail
@@ -361,11 +361,20 @@ namespace ringbuffer {
         };
 
         if( !nonblocking ) {
-            state.write_condition.wait(lock, postcondition_predicate);
+            if (timeout.count() == 0) {
+                state.write_condition.wait(lock, postcondition_predicate);
+            } else {
+                if(!state.write_condition.wait_for(lock, timeout, postcondition_predicate)) {
+                    // Revert and return failure
+                    state.reserve_head -= size;
+                    return RBStatus::STATUS_WAIT_TIMEOUT;
+                }
+
+            }
         } else if( !postcondition_predicate() ) {
             // Revert and return failure
             state.reserve_head -= size;
-            return false;
+            return RBStatus::STATUS_WOULD_BLOCK;
         }
 
         std::size_t cur_span = state.reserve_head - state.tail;
@@ -388,7 +397,7 @@ namespace ringbuffer {
                 state.sequence_queue.pop();
             }
         }
-        return true;
+        return RBStatus::STATUS_SUCCESS;
     }
 
     std::vector<uint64_t> Ring::list_time_tags() {
@@ -521,6 +530,7 @@ namespace ringbuffer {
     SequencePtr Ring::_get_earliest_or_latest_sequence(state::unique_lock_type& lock, bool latest) const {
         const auto& state = get_state();
         // Wait until a sequence has been opened or writing has ended
+        // @todo: check if we would need to use a timeout here - this call blocks until sequence is opened or writing has ended
         state.sequence_condition.wait(lock, [this]() {
             const auto& state = get_state();
             return !state.sequence_queue.empty() || state.writing_ended;
@@ -550,6 +560,7 @@ namespace ringbuffer {
                                          state::unique_lock_type& lock) const {
         const auto& state = get_state();
         // Wait until the next sequence has been opened or writing has ended
+        // @todo: check if we would need to use a timeout here - waits until sequence has been opened or writing has ended.
         state.sequence_condition.wait(lock, [&]() {
             return ((bool)sequence->m_next) || state.writing_ended;
         });
@@ -668,6 +679,8 @@ namespace ringbuffer {
         //   after the end of the sequence.
 
         // Wait until requested span has been written or sequence has ended
+
+        // @todo: check if it makes sense to use a timeout for the wait here !!
         state.read_condition.wait(lock, [&]() {
             auto& state = get_state();
             return ((delta_type(state.head - std::max(requested_begin, state.tail)) >=
@@ -704,13 +717,15 @@ namespace ringbuffer {
         state.realloc_condition.notify_all();
     }
 
-    void Ring::reserve_span(std::size_t size, std::size_t* begin, void** data, bool nonblocking) {
+    void Ring::reserve_span(std::size_t size, std::size_t* begin, void** data, bool nonblocking, std::chrono::nanoseconds timeout) {
         auto& state = get_state();
         state::unique_lock_type lock(state.mutex);
         RB_ASSERT_EXCEPTION(size <= state.ghost_span, RBStatus::STATUS_INVALID_ARGUMENT);
         *begin = state.reserve_head;
-        RB_ASSERT_EXCEPTION(this->_advance_reserve_head(lock, size, nonblocking),
-                            RBStatus::STATUS_WOULD_BLOCK);
+        auto ret = this->_advance_reserve_head(lock, size, nonblocking, timeout);
+        if (ret != RBStatus::STATUS_SUCCESS) {
+            throw RBException(ret);
+        }
         ++state.nwrite_open;
         *data = _buf_pointer(*begin);
     }
@@ -740,6 +755,8 @@ namespace ringbuffer {
         //         in order (i.e., they will automatically synchronise).
         //         This is useful for multithreading with OpenMP
         //std::cout << "(1) begin, head, rhead: " << begin << ", " << _head << ", " << _reserve_head << std::endl;
+
+        // @todo: check if it makes sense to use a timeout for the wait here !!
         state.write_close_condition.wait(lock, [&]() {
             auto& state = get_state();
             return (begin == state.head);
