@@ -31,6 +31,7 @@ endif()
 target_include_directories(ringbuffer_test
         PRIVATE
         ${PROJECT_SOURCE_DIR}/include
+        ${CMAKE_BINARY_DIR}/include
         ${PROJECT_BINARY_DIR}/src
         ${PROJECT_SOURCE_DIR}/src
         )
