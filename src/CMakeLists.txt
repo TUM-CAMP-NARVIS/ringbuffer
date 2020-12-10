@@ -1,5 +1,5 @@
 # Header
-configure_file(${PROJECT_SOURCE_DIR}/include/ringbuffer/config.h.in ${PROJECT_BINARY_DIR}/include/ringbuffer/config.h @ONLY)
+configure_file(${PROJECT_SOURCE_DIR}/include/ringbuffer/config.h.in ${CMAKE_BINARY_DIR}/include/ringbuffer/config.h @ONLY)
 
 
 set(RINGBUFFER_HEADERS

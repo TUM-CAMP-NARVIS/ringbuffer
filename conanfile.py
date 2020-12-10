@@ -7,7 +7,7 @@ from io import StringIO
 
 class RingbufferConan(ConanFile):
     name = "ringbuffer"
-    version = "0.1.1"
+    version = "0.2.0"
 
     description = "Ringbuffer Library"
     url = "https://github.com/TUM-CAMP-NARVIS/ringbuffer"
@@ -29,7 +29,7 @@ class RingbufferConan(ConanFile):
     }
 
     requires = (
-        "Boost/1.70.0@camposs/stable",
+        "Boost/1.72.0@camposs/stable",
         "gtest/1.10.0",
         "spdlog/1.5.0",
         )

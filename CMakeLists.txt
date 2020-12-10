@@ -1,14 +1,21 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.18)
 project(ringbuffer C CXX CUDA)
+#Force to use new CUDA_ARCHITECTURES PROPERTY TO SPECIFY TARGET ARCHITECTURES
+cmake_policy(SET CMP0104 NEW)
+cmake_policy(SET CMP0105 NEW)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/modules/" ${CMAKE_MODULE_PATH})
 
-if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-    conan_basic_setup(TARGETS)
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo_multi.cmake)
+    include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo_multi.cmake)
+    conan_set_find_paths()
+elseif(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+    include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
 else()
     message(WARNING "The file conanbuildinfo.cmake doesn't exist, you have to run conan install first")
 endif()
+
+conan_basic_setup(TARGETS)
 
 include(GNUInstallDirs)
 
