@@ -122,7 +122,8 @@ namespace ringbuffer {
 
         ReadSpan(ReadSequence* sequence,
                  std::size_t  offset,
-                 std::size_t  size);
+                 std::size_t  size,
+                 std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         ~ReadSpan();
 
         std::size_t size_overwritten() const;

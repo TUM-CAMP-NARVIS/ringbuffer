@@ -79,12 +79,13 @@ namespace ringbuffer {
 
     ReadSpan::ReadSpan(ReadSequence*   sequence,
                        std::size_t    offset, // Relative to sequence beg
-                       std::size_t    requested_size)
+                       std::size_t    requested_size,
+                       std::chrono::nanoseconds timeout)
             : Span(sequence->ring(), requested_size),
               m_sequence(sequence), m_begin(0), m_data(nullptr) {
         std::size_t returned_size = requested_size;
         // @todo: this call potentially blocks until data can read
-        this->ring()->acquire_span(sequence, offset, &returned_size, &m_begin, &m_data);
+        this->ring()->acquire_span(sequence, offset, &returned_size, &m_begin, &m_data, timeout);
         this->set_base_size(returned_size);
     }
 

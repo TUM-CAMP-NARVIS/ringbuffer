@@ -361,6 +361,7 @@ namespace ringbuffer {
         };
 
         if( !nonblocking ) {
+            // either wait infinitely (timeout=0) or raise exception when timeout occurs
             if (timeout.count() == 0) {
                 state.write_condition.wait(lock, postcondition_predicate);
             } else {
@@ -369,7 +370,6 @@ namespace ringbuffer {
                     state.reserve_head -= size;
                     return RBStatus::STATUS_WAIT_TIMEOUT;
                 }
-
             }
         } else if( !postcondition_predicate() ) {
             // Revert and return failure
@@ -527,14 +527,21 @@ namespace ringbuffer {
                 std::size_t(state.head - sequence->end()) <= std::size_t(state.head - state.tail));
     }
 
-    SequencePtr Ring::_get_earliest_or_latest_sequence(state::unique_lock_type& lock, bool latest) const {
+    SequencePtr Ring::_get_earliest_or_latest_sequence(state::unique_lock_type& lock, bool latest, std::chrono::nanoseconds timeout) const {
         const auto& state = get_state();
         // Wait until a sequence has been opened or writing has ended
-        // @todo: check if we would need to use a timeout here - this call blocks until sequence is opened or writing has ended
-        state.sequence_condition.wait(lock, [this]() {
+        auto condition_predicate = [this]() {
             const auto& state = get_state();
             return !state.sequence_queue.empty() || state.writing_ended;
-        });
+        };
+        // either wait infinitely (timeout=0) or raise exception when timeout occurs
+        if (timeout.count() == 0) {
+            state.sequence_condition.wait(lock, condition_predicate);
+        } else {
+            if(!state.sequence_condition.wait_for(lock, timeout, condition_predicate)) {
+                throw RBException(RBStatus::STATUS_WAIT_TIMEOUT);
+            }
+        }
         RB_ASSERT_EXCEPTION(!(state.sequence_queue.empty() && !state.writing_ended), RBStatus::STATUS_INVALID_STATE);
         RB_ASSERT_EXCEPTION(!(state.sequence_queue.empty() &&  state.writing_ended), RBStatus::STATUS_END_OF_DATA);
         SequencePtr sequence = (latest ?
@@ -557,20 +564,27 @@ namespace ringbuffer {
     }
 
     SequencePtr Ring::_get_next_sequence(SequencePtr sequence,
-                                         state::unique_lock_type& lock) const {
+                                         state::unique_lock_type& lock, std::chrono::nanoseconds timeout) const {
         const auto& state = get_state();
         // Wait until the next sequence has been opened or writing has ended
-        // @todo: check if we would need to use a timeout here - waits until sequence has been opened or writing has ended.
-        state.sequence_condition.wait(lock, [&]() {
+        auto condition_predicate = [&]() {
             return ((bool)sequence->m_next) || state.writing_ended;
-        });
+        };
+        // either wait infinitely (timeout=0) or raise exception when timeout occurs
+        if (timeout.count() == 0) {
+            state.sequence_condition.wait(lock, condition_predicate);
+        } else {
+            if(!state.sequence_condition.wait_for(lock, timeout, condition_predicate)) {
+                throw RBException(RBStatus::STATUS_WAIT_TIMEOUT);
+            }
+        }
         RB_ASSERT_EXCEPTION(sequence->m_next, RBStatus::STATUS_END_OF_DATA);
         return sequence->m_next;
     }
 
     SequencePtr Ring::open_earliest_or_latest_sequence(bool with_guarantee,
                                                        std::unique_ptr<state::Guarantee>& guarantee,
-                                                       bool latest) {
+                                                       bool latest, std::chrono::nanoseconds timeout) {
         // Note: Guarantee uses locks, so must be kept outside the lock scope here
         std::unique_ptr<state::Guarantee> scoped_guarantee;
         if( with_guarantee ) {
@@ -579,7 +593,7 @@ namespace ringbuffer {
         }
         auto& state = get_state();
         state::unique_lock_type lock(state.mutex);
-        SequencePtr sequence = this->_get_earliest_or_latest_sequence(lock, latest);
+        SequencePtr sequence = this->_get_earliest_or_latest_sequence(lock, latest, timeout);
         if( scoped_guarantee ) {
             // Move guarantee to start of sequence
             scoped_guarantee->move_nolock(
@@ -591,14 +605,14 @@ namespace ringbuffer {
     }
 
     void Ring::increment_sequence_to_next(SequencePtr& sequence,
-                                          std::unique_ptr<state::Guarantee>& guarantee) {
+                                          std::unique_ptr<state::Guarantee>& guarantee, std::chrono::nanoseconds timeout) {
         // Take ownership of the guarantee (if it exists)
         // Note: Guarantee uses locks, so must be kept outside the lock scope here
         std::unique_ptr<state::Guarantee> scoped_guarantee = std::move(guarantee);
         auto& state = get_state();
         state::unique_lock_type lock(state.mutex);
         //SequencePtr next_sequence = this->_get_next_sequence(sequence, lock);
-        sequence = this->_get_next_sequence(sequence, lock);
+        sequence = this->_get_next_sequence(sequence, lock, timeout);
         if( scoped_guarantee ) {
             // Move the guarantee to the start of the new sequence
             scoped_guarantee->move_nolock(
@@ -635,7 +649,8 @@ namespace ringbuffer {
                             std::size_t   offset, // Relative to sequence beg
                             std::size_t*  size_,
                             std::size_t*  begin_,
-                            void**        data_) {
+                            void**        data_,
+                            std::chrono::nanoseconds timeout) {
         RB_ASSERT_EXCEPTION(rsequence,             RBStatus::STATUS_INVALID_SEQUENCE_HANDLE);
         RB_ASSERT_EXCEPTION(size_,                 RBStatus::STATUS_INVALID_POINTER);
         RB_ASSERT_EXCEPTION(begin_,                RBStatus::STATUS_INVALID_POINTER);
@@ -680,14 +695,22 @@ namespace ringbuffer {
 
         // Wait until requested span has been written or sequence has ended
 
-        // @todo: check if it makes sense to use a timeout for the wait here !!
-        state.read_condition.wait(lock, [&]() {
+        auto condition_predicate = [&]() {
             auto& state = get_state();
             return ((delta_type(state.head - std::max(requested_begin, state.tail)) >=
                      delta_type(requested_end - std::max(requested_begin, state.tail)) ||
                      sequence->is_finished()) &&
                     state.nrealloc_pending == 0);
-        });
+        };
+        // either wait infinitely (timeout=0) or raise exception when timeout occurs
+        if (timeout.count() == 0) {
+            state.read_condition.wait(lock, condition_predicate);
+        } else {
+            if(!state.read_condition.wait_for(lock, timeout, condition_predicate)) {
+                throw RBException(RBStatus::STATUS_WAIT_TIMEOUT);
+                // @todo any cleanup needed ??
+            }
+        }
 
         // Constrain to what is in the buffer (i.e., what hasn't been overwritten)
         std::size_t begin = std::max(requested_begin, state.tail);
@@ -756,11 +779,14 @@ namespace ringbuffer {
         //         This is useful for multithreading with OpenMP
         //std::cout << "(1) begin, head, rhead: " << begin << ", " << _head << ", " << _reserve_head << std::endl;
 
-        // @todo: check if it makes sense to use a timeout for the wait here !!
-        state.write_close_condition.wait(lock, [&]() {
+        auto condition_predicate = [&]() {
             auto& state = get_state();
             return (begin == state.head);
-        });
+        };
+
+        // here we cannot add a timeout as we need to guarantee the writing of the data if started.
+        state.write_close_condition.wait(lock, condition_predicate);
+
         state.write_close_condition.notify_all();
 
         if( state.reserve_head == state.head + reserve_size ) {

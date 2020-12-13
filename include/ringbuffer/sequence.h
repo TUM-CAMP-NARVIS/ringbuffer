@@ -133,10 +133,10 @@ namespace ringbuffer {
         std::unique_ptr<state::Guarantee> m_guarantee;
     public:
         // @todo: See if can make these function bodies a bit more concise
-        static ReadSequence earliest_or_latest(const std::shared_ptr<Ring>& ring, bool with_guarantee, bool latest);
+        static ReadSequence earliest_or_latest(const std::shared_ptr<Ring>& ring, bool with_guarantee, bool latest, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         static ReadSequence by_name(const std::shared_ptr<Ring>& ring, const std::string& name, bool with_guarantee);
         static ReadSequence at(const std::shared_ptr<Ring>& ring, time_tag_type time_tag, bool with_guarantee);
-        static std::unique_ptr<ReadSequence> earliest_or_latest_ptr(const std::shared_ptr<Ring>& ring, bool with_guarantee, bool latest);
+        static std::unique_ptr<ReadSequence> earliest_or_latest_ptr(const std::shared_ptr<Ring>& ring, bool with_guarantee, bool latest, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         static std::unique_ptr<ReadSequence> by_name_ptr(const std::shared_ptr<Ring>& ring, const std::string& name, bool with_guarantee);
         static std::unique_ptr<ReadSequence> at_ptr(const std::shared_ptr<Ring>& ring, time_tag_type time_tag, bool with_guarantee);
         ReadSequence(SequencePtr sequence, std::unique_ptr<state::Guarantee>& guarantee);
@@ -147,7 +147,7 @@ namespace ringbuffer {
 		ReadSequence(ReadSequence&&);
 		ReadSequence& operator=(ReadSequence&&);
 
-        void increment_to_next();
+        void increment_to_next(std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
 
         inline std::unique_ptr<state::Guarantee>&       guarantee()       { return m_guarantee; }
         inline std::unique_ptr<state::Guarantee> const& guarantee() const { return m_guarantee; }
