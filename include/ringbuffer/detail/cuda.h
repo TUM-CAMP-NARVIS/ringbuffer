@@ -281,8 +281,12 @@ namespace ringbuffer {
         };
 
 #else // RINGBUFFER_WITH_CUDA
+#ifndef __host__
     #define __host__
+#endif
+#ifndef __device__
     #define __device__
+#endif
 #endif // RINGBUFFER_WITH_CUDA
 
 

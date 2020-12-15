@@ -59,12 +59,14 @@ namespace ringbuffer {
         typedef boost::lock_guard<mutex_type>     lock_guard_type;
         typedef std::unique_lock<mutex_type>      unique_lock_type;
         typedef boost::fibers::condition_variable condition_type;
+        typedef boost::fibers::cv_status          cv_status;
         typedef RingReallocLock                   realloc_lock_type;
 #else
         typedef std::mutex                   mutex_type;
         typedef std::lock_guard<mutex_type>  lock_guard_type;
         typedef std::unique_lock<mutex_type> unique_lock_type;
         typedef std::condition_variable      condition_type;
+        typedef std::cv_status               cv_status;
         typedef RingReallocLock              realloc_lock_type;
 #endif
     }

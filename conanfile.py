@@ -7,7 +7,7 @@ from io import StringIO
 
 class RingbufferConan(ConanFile):
     name = "ringbuffer"
-    version = "0.1.1"
+    version = "0.2.0"
 
     description = "Ringbuffer Library"
     url = "https://github.com/TUM-CAMP-NARVIS/ringbuffer"
@@ -109,5 +109,6 @@ class RingbufferConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        # self.cpp_info.libs = tools.collect_libs(self)  # doesn't work in workspace builds ..
+        self.cpp_info.libs = ['ringbuffer']
 

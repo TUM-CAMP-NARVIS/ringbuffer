@@ -53,6 +53,7 @@
 #include "ringbuffer/detail/signal.h"
 
 #include <memory>
+#include <chrono>
 
 namespace ringbuffer {
 
@@ -73,7 +74,7 @@ namespace ringbuffer {
         void _copy_to_ghost(  std::size_t buf_offset, std::size_t span);
         void _copy_from_ghost(std::size_t buf_offset, std::size_t span);
 
-        bool _advance_reserve_head(state::unique_lock_type& lock, std::size_t size, bool nonblocking);
+        RBStatus _advance_reserve_head(state::unique_lock_type& lock, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
 
         void _add_guarantee(std::size_t offset);
         void _remove_guarantee(std::size_t offset);
@@ -81,16 +82,16 @@ namespace ringbuffer {
 
         bool _sequence_still_within_ring(SequencePtr sequence) const;
         std::size_t _get_start_of_sequence_within_ring(SequencePtr sequence) const;
-        SequencePtr _get_earliest_or_latest_sequence(state::unique_lock_type& lock, bool latest) const;
+        SequencePtr _get_earliest_or_latest_sequence(state::unique_lock_type& lock, bool latest, std::chrono::nanoseconds timeout) const;
 
         SequencePtr open_earliest_or_latest_sequence(bool with_guarantee,
                                                      std::unique_ptr<state::Guarantee>& guarantee,
-                                                     bool latest);
+                                                     bool latest, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         SequencePtr _get_next_sequence(SequencePtr sequence,
-                                       state::unique_lock_type& lock) const;
+                                       state::unique_lock_type& lock, std::chrono::nanoseconds timeout) const;
 
         void increment_sequence_to_next(SequencePtr& sequence,
-                                        std::unique_ptr<state::Guarantee>& guarantee);
+                                        std::unique_ptr<state::Guarantee>& guarantee, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         SequencePtr _get_sequence_by_name(const std::string& name);
 
         SequencePtr open_sequence_by_name(const std::string& name,
@@ -178,14 +179,15 @@ namespace ringbuffer {
                                    std::size_t   nringlet,
                                    std::size_t   offset_from_head=0);
 
-        void reserve_span(std::size_t size, std::size_t* begin, void** data, bool nonblocking);
+        void reserve_span(std::size_t size, std::size_t* begin, void** data, bool nonblocking, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         void commit_span(std::size_t begin, std::size_t reserve_size, std::size_t commit_size);
 
         void acquire_span(ReadSequence* sequence,
                           std::size_t  offset,
                           std::size_t* size,
                           std::size_t* begin,
-                          void**      data);
+                          void**      data,
+                          std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         void release_span(ReadSequence* sequence,
                           std::size_t  begin,
                           std::size_t  size);

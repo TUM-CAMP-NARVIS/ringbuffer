@@ -80,9 +80,9 @@ namespace ringbuffer {
 
 
     // @todo: See if can make these function bodies a bit more concise
-    ReadSequence ReadSequence::earliest_or_latest(const std::shared_ptr<Ring>& ring, bool with_guarantee, bool latest) {
+    ReadSequence ReadSequence::earliest_or_latest(const std::shared_ptr<Ring>& ring, bool with_guarantee, bool latest, std::chrono::nanoseconds timeout) {
         std::unique_ptr<state::Guarantee> guarantee;
-        SequencePtr sequence = ring->open_earliest_or_latest_sequence(with_guarantee, guarantee, latest);
+        SequencePtr sequence = ring->open_earliest_or_latest_sequence(with_guarantee, guarantee, latest, timeout);
         return std::move(ReadSequence(sequence, guarantee));
     }
 
@@ -98,9 +98,9 @@ namespace ringbuffer {
         return std::move(ReadSequence(sequence, guarantee));
     }
 
-    std::unique_ptr<ReadSequence> ReadSequence::earliest_or_latest_ptr(const std::shared_ptr<Ring>& ring, bool with_guarantee, bool latest) {
+    std::unique_ptr<ReadSequence> ReadSequence::earliest_or_latest_ptr(const std::shared_ptr<Ring>& ring, bool with_guarantee, bool latest, std::chrono::nanoseconds timeout) {
         std::unique_ptr<state::Guarantee> guarantee;
-        SequencePtr sequence = ring->open_earliest_or_latest_sequence(with_guarantee, guarantee, latest);
+        SequencePtr sequence = ring->open_earliest_or_latest_sequence(with_guarantee, guarantee, latest, timeout);
         return std::unique_ptr<ReadSequence>(new ReadSequence(sequence, guarantee));
     }
 
@@ -123,8 +123,8 @@ namespace ringbuffer {
 	ReadSequence::ReadSequence(ReadSequence&&) = default;
 	ReadSequence& ReadSequence::operator=(ReadSequence&&) = default;
 
-    void ReadSequence::increment_to_next() {
-        m_sequence->ring()->increment_sequence_to_next(m_sequence, m_guarantee);
+    void ReadSequence::increment_to_next(std::chrono::nanoseconds timeout) {
+        m_sequence->ring()->increment_sequence_to_next(m_sequence, m_guarantee, timeout);
     }
 
 

@@ -3,7 +3,7 @@ configure_file(${PROJECT_SOURCE_DIR}/include/ringbuffer/config.h.in ${CMAKE_BINA
 
 
 set(RINGBUFFER_HEADERS
-        "${PROJECT_BINARY_DIR}/include/ringbuffer/config.h"
+        "${CMAKE_BINARY_DIR}/include/ringbuffer/config.h"
         "${PROJECT_SOURCE_DIR}/include/ringbuffer/visibility.h"
         "${PROJECT_SOURCE_DIR}/include/ringbuffer/types.h"
         "${PROJECT_SOURCE_DIR}/include/ringbuffer/common.h"
@@ -48,7 +48,7 @@ target_link_libraries(ringbuffer PUBLIC
 
 target_include_directories(ringbuffer PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>/include
-        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
         $<INSTALL_INTERFACE:include>
         PRIVATE
         ${CMAKE_BINARY_DIR}/include
