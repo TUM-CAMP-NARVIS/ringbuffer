@@ -48,7 +48,8 @@
 #include "ringbuffer/visibility.h"
 
 #ifndef RINGBUFFER_ALIGNMENT
-    #define RINGBUFFER_ALIGNMENT 4096//512
+    // @todo: what is a good size here ? originally in bifrost it is set to 4096
+    #define RINGBUFFER_ALIGNMENT 512
 #endif
 
 
