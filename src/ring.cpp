@@ -622,7 +622,6 @@ namespace ringbuffer {
         guarantee = std::move(scoped_guarantee);
     }
 
-    void finish();
 
 
     void Ring::finish_sequence(SequencePtr sequence,
