@@ -38,7 +38,7 @@ set(RINGBUFFER_SOURCES
 
 add_library(ringbuffer ${RINGBUFFER_SOURCES} ${RINGBUFFER_HEADERS})
 
-set_target_properties(ringbuffer PROPERTIES CXX_STANDARD 11)
+set_target_properties(ringbuffer PROPERTIES CXX_STANDARD 17)
 set_target_properties(ringbuffer PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(ringbuffer PUBLIC

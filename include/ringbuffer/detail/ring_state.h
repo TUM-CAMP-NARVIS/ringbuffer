@@ -103,6 +103,7 @@ namespace ringbuffer {
             std::map<std::size_t,SequencePtr> sequence_time_tag_map;
 
             guarantee_set guarantees;
+            mutable mutex_type guarantees_mutex;
 
         };
 

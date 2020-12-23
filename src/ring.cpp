@@ -49,7 +49,7 @@
 #include "ringbuffer/detail/guarantee.h"
 #include "ringbuffer/detail/cuda.h"
 #include "ringbuffer/detail/util.h"
-
+#include <mutex>
 
 #ifdef RINGBUFFER_WITH_NUMA
 #include <numa.h>
@@ -60,6 +60,7 @@ namespace ringbuffer {
 
     void Ring::_add_guarantee(std::size_t offset) {
         auto& state = get_state();
+        std::scoped_lock<state::mutex_type> lk(state.guarantees_mutex);
         auto iter = state.guarantees.find(offset);
         if( iter == state.guarantees.end() ) {
             state.guarantees.insert(std::make_pair(offset, 1));
@@ -71,6 +72,7 @@ namespace ringbuffer {
 
     void Ring::_remove_guarantee(std::size_t offset) {
         auto& state = get_state();
+        std::scoped_lock<state::mutex_type> lk(state.guarantees_mutex);
         auto iter = state.guarantees.find(offset);
         if( iter == state.guarantees.end() ) {
             throw RBException(RBStatus::STATUS_INTERNAL_ERROR);
@@ -329,7 +331,8 @@ namespace ringbuffer {
         memory::memcpy2D(state.buf + (state.span + buf_offset), state.stride, state.space,
                    state.buf + buf_offset, state.stride, state.space,
                    span, state.nringlet);
-        cuda::streamSynchronize();
+        // @todo: commented out as it could be a source of instability ..
+        //cuda::streamSynchronize();
     }
     
     void Ring::_copy_from_ghost(std::size_t buf_offset, std::size_t span) {
@@ -338,7 +341,8 @@ namespace ringbuffer {
         memory::memcpy2D(state.buf + buf_offset, state.stride, state.space,
                          state.buf + (state.span + buf_offset), state.stride, state.space,
                          span, state.nringlet);
-        cuda::streamSynchronize();
+        // @todo: commented out as it could be a source of instability ..
+        //cuda::streamSynchronize();
     }
 
     RBStatus Ring::_advance_reserve_head(state::unique_lock_type& lock, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout) {
@@ -355,9 +359,12 @@ namespace ringbuffer {
         state.reserve_head += size;
         auto postcondition_predicate = [this]() {
             const auto& state = get_state();
-            return ((state.guarantees.empty() ||
-                     std::size_t(state.reserve_head - _get_earliest_guarantee()) <= state.span) &&
-                     state.nrealloc_pending == 0);
+            bool no_guarantees;
+            {
+                std::scoped_lock<state::mutex_type> lk(state.guarantees_mutex);
+                no_guarantees = (state.guarantees.empty() || std::size_t(state.reserve_head - _get_earliest_guarantee()) <= state.span);
+            }
+            return (no_guarantees && state.nrealloc_pending == 0);
         };
 
         if( !nonblocking ) {
