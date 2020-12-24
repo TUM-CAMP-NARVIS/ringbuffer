@@ -398,6 +398,7 @@ namespace ringbuffer {
                     state.sequence_map.erase(state.sequence_queue.front()->m_name);
                 }
                 if( state.sequence_queue.front()->m_time_tag != std::size_t(-1) ) {
+                    spdlog::trace("Ringbuffer[{0}] discard timetag: {1}", state.name, state.sequence_queue.front()->m_time_tag);
                     state.sequence_time_tag_map.erase(state.sequence_queue.front()->m_time_tag);
                 }
                 //delete _sequence_queue.front();

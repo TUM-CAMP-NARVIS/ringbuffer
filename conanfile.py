@@ -31,7 +31,7 @@ class RingbufferConan(ConanFile):
     requires = (
         "Boost/1.72.0@camposs/stable",
         "gtest/1.10.0",
-        "spdlog/1.5.0",
+        "spdlog/1.8.2",
         )
 
     default_options = {
