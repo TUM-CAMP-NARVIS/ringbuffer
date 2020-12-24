@@ -52,10 +52,14 @@
 #include "ringbuffer/detail/ring_state.h"
 #include "ringbuffer/detail/signal.h"
 
+#include <spdlog/logger.h>
+#include <spdlog/spdlog.h>
 #include <memory>
 #include <chrono>
 
 namespace ringbuffer {
+
+    void RINGBUFFER_EXPORT setup_logger(std::shared_ptr<spdlog::logger> logger);
 
     class RINGBUFFER_EXPORT Ring : public std::enable_shared_from_this<Ring> {
         friend class ReadSequence;

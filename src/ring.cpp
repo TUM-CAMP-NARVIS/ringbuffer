@@ -58,6 +58,10 @@
 
 namespace ringbuffer {
 
+    void setup_logger(std::shared_ptr<spdlog::logger> logger) {
+        spdlog::set_default_logger(logger);
+    }
+
     void Ring::_add_guarantee(std::size_t offset) {
         auto& state = get_state();
         std::scoped_lock<state::mutex_type> lk(state.guarantees_mutex);
@@ -332,7 +336,7 @@ namespace ringbuffer {
                    state.buf + buf_offset, state.stride, state.space,
                    span, state.nringlet);
         // @todo: commented out as it could be a source of instability ..
-        //cuda::streamSynchronize();
+        cuda::streamSynchronize();
     }
     
     void Ring::_copy_from_ghost(std::size_t buf_offset, std::size_t span) {
@@ -342,7 +346,7 @@ namespace ringbuffer {
                          state.buf + (state.span + buf_offset), state.stride, state.space,
                          span, state.nringlet);
         // @todo: commented out as it could be a source of instability ..
-        //cuda::streamSynchronize();
+        cuda::streamSynchronize();
     }
 
     RBStatus Ring::_advance_reserve_head(state::unique_lock_type& lock, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout) {
@@ -384,6 +388,7 @@ namespace ringbuffer {
             return RBStatus::STATUS_WOULD_BLOCK;
         }
 
+        spdlog::trace("XXXXX RINGBUFFER");
         std::size_t cur_span = state.reserve_head - state.tail;
         if( cur_span > state.span ) {
             // Pull the tail
