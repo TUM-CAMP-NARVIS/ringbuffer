@@ -388,7 +388,6 @@ namespace ringbuffer {
             return RBStatus::STATUS_WOULD_BLOCK;
         }
 
-        spdlog::trace("XXXXX RINGBUFFER");
         std::size_t cur_span = state.reserve_head - state.tail;
         if( cur_span > state.span ) {
             // Pull the tail
@@ -778,6 +777,7 @@ namespace ringbuffer {
             state.reserve_head == begin + reserve_size ) {
             // This is the last-opened block so we can 'cancel' it by pulling back
             //   the reserve head.
+            spdlog::warn("AAA - Cancel Block in Ringbuffer ...");
             state.reserve_head = begin;
             --state.nwrite_open;
             state.realloc_condition.notify_all();
