@@ -773,11 +773,12 @@ namespace ringbuffer {
 
         // Note: This allows unused open blocks to be 'cancelled' if they
         //         are closed in reverse order.
+
+        // ueck: this may be causing a problem when commiting 0 bytes (empty buffers)
         if( commit_size == 0 &&
             state.reserve_head == begin + reserve_size ) {
             // This is the last-opened block so we can 'cancel' it by pulling back
             //   the reserve head.
-            spdlog::warn("AAA - Cancel Block in Ringbuffer ...");
             state.reserve_head = begin;
             --state.nwrite_open;
             state.realloc_condition.notify_all();
