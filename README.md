@@ -1,2 +1,2 @@
 # ringbuffer
-Ringbuffer Implementation with support for CUDA inspired by bifrost
+Ringbuffer Implementation with support for CUDA inspired by c
