@@ -7,7 +7,7 @@ from io import StringIO
 
 class RingbufferConan(ConanFile):
     name = "ringbuffer"
-    version = "0.2.2"
+    version = "0.2.3"
 
     description = "Ringbuffer Library"
     url = "https://github.com/TUM-CAMP-NARVIS/ringbuffer"
@@ -29,7 +29,7 @@ class RingbufferConan(ConanFile):
     }
 
     requires = (
-        "Boost/1.72.0@camposs/stable",
+        "Boost/1.75.0@camposs/stable",
         "gtest/1.10.0",
         "spdlog/1.8.2",
         )
@@ -50,7 +50,7 @@ class RingbufferConan(ConanFile):
 
     def requirements(self):
         if self.options.with_cuda:
-            self.requires("cuda_dev_config/[>=1.0]@camposs/stable")
+            self.requires("cuda_dev_config/[1.1]@camposs/stable")
 
         if self.options.enable_fibers:
             self.requires("fiberpool/0.1@camposs/stable")
