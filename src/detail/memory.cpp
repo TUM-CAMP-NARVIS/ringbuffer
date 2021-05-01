@@ -81,6 +81,11 @@ namespace ringbuffer {
                     case cudaMemoryTypeDevice:
                         *space = RBSpace::SPACE_CUDA;
                         break;
+#if CUDART_VERSION >= 1100
+                    case cudaMemoryTypeUnregistered:
+                        *space = RBSpace::SPACE_SYSTEM;
+                        break;
+#endif
                     default: {
                         // This should never be reached - unless someone uses SHM Space which is not yet implemented ...
                         RB_FAIL("Valid memoryType", RBStatus::STATUS_INTERNAL_ERROR);
