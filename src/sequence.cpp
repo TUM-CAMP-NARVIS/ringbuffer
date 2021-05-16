@@ -113,6 +113,9 @@ namespace ringbuffer {
     std::unique_ptr<ReadSequence> ReadSequence::at_ptr(const std::shared_ptr<Ring>& ring, time_tag_type time_tag, bool with_guarantee) {
         std::unique_ptr<state::Guarantee> guarantee;
         SequencePtr sequence = ring->open_sequence_at(time_tag, with_guarantee, guarantee);
+        if(!sequence){
+            return nullptr;
+        }
         return std::unique_ptr<ReadSequence>(new ReadSequence(sequence, guarantee));
     }
 
