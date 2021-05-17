@@ -676,6 +676,11 @@ namespace ringbuffer {
         std::size_t requested_begin = sequence->begin() + offset;
         std::size_t requested_end   = requested_begin + *size_;
 
+        //Check, if we have not overwritten the requested sequence already
+        if(requested_begin < state.tail){
+            throw RBException(RBStatus::STATUS_INVALID_SEQUENCE_HANDLE,"sequence was overwritten");
+        }
+
         // @todo: If this function fails, should the guarantee be left where it was?
         //         This would be straightforward to implement using a scoped
         //           guarantee.
