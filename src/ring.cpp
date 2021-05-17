@@ -523,7 +523,7 @@ namespace ringbuffer {
         auto& state = get_state();
         state::unique_lock_type lock(state.mutex);
         SequencePtr sequence = this->_get_sequence_at(time_tag);
-        if(sequence->begin() >= state.tail) {
+        if(sequence->begin() < state.tail) {
             //This sequence was already overwritten
             return nullptr;
         }
