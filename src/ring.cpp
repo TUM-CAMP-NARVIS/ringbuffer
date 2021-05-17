@@ -523,10 +523,6 @@ namespace ringbuffer {
         auto& state = get_state();
         state::unique_lock_type lock(state.mutex);
         SequencePtr sequence = this->_get_sequence_at(time_tag);
-        if(sequence->begin() < state.tail) {
-            //This sequence was already overwritten
-            return nullptr;
-        }
         if( scoped_guarantee ) {
             // Move guarantee to start of sequence
             scoped_guarantee->move_nolock(
@@ -679,6 +675,11 @@ namespace ringbuffer {
 
         std::size_t requested_begin = sequence->begin() + offset;
         std::size_t requested_end   = requested_begin + *size_;
+
+        //Check, if we have not overwritten the requested sequence already
+        if(requested_begin < state.tail){
+            throw RBException(RBStatus::STATUS_INVALID_SEQUENCE_HANDLE,"sequence was overwritten");
+        }
 
         // @todo: If this function fails, should the guarantee be left where it was?
         //         This would be straightforward to implement using a scoped
