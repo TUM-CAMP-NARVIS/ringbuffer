@@ -55,7 +55,7 @@
 namespace ringbuffer {
 
     class RINGBUFFER_EXPORT Span {
-        std::shared_ptr<Ring> m_ring;
+        std::weak_ptr<Ring> m_ring;
         std::size_t  m_size;
 
     protected:
@@ -69,10 +69,10 @@ namespace ringbuffer {
         Span(Span&& )                 = delete;
         Span& operator=(Span&& )      = delete;
 
-        Span(const std::shared_ptr<Ring>& ring, std::size_t size);
+        Span(const std::weak_ptr<Ring>& ring, std::size_t size);
         virtual ~Span();
 
-        std::shared_ptr<Ring> ring() const;
+        std::weak_ptr<Ring> ring() const;
         std::size_t     size() const;
         // Note: These two are only safe to read while a span is open (preventing resize)
         std::size_t     stride() const;
@@ -94,7 +94,7 @@ namespace ringbuffer {
         WriteSpan(WriteSpan&& )                 = delete;
         WriteSpan& operator=(WriteSpan&& )      = delete;
 
-        WriteSpan(const std::shared_ptr<Ring>& ring, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
+        WriteSpan(const std::weak_ptr<Ring>& ring, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout=std::chrono::nanoseconds(0));
         ~WriteSpan() override;
 
         WriteSpan* commit(std::size_t size);
