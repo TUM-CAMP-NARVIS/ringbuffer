@@ -80,6 +80,7 @@ namespace ringbuffer {
         STATUS_FAILED_TO_CONVERGE                       = 64,
         STATUS_INSUFFICIENT_STORAGE                     = 65,
         STATUS_DEVICE_ERROR                             = 66,
+        STATUS_RING_NOT_AVAILABLE                       = 67,
         STATUS_INTERNAL_ERROR                           = 99
     };
 

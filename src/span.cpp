@@ -49,18 +49,23 @@ namespace ringbuffer {
 
     void Span::set_base_size(std::size_t size) { m_size = size; }
 
-    Span::Span(const std::shared_ptr<Ring>& ring, std::size_t size) : m_ring(ring), m_size(size) {}
+    Span::Span(const std::weak_ptr<Ring>& ring, std::size_t size) : m_ring(ring), m_size(size) {}
     Span::~Span() {}
 
-    std::shared_ptr<Ring> Span::ring() const { return m_ring; }
+    std::weak_ptr<Ring> Span::ring() const { return m_ring; }
     std::size_t Span::size()     const { return m_size; }
-    std::size_t Span::stride()   const { return m_ring->current_stride(); }
-    std::size_t Span::nringlet() const { return m_ring->current_nringlet(); }
+    std::size_t Span::stride()   const { if(auto r = m_ring.lock()){return r->current_stride();} else{return 0;} }
+    std::size_t Span::nringlet() const { if(auto r = m_ring.lock()){return r->current_nringlet();} else{return 0;} }
 
 
-    WriteSpan::WriteSpan(const std::shared_ptr<Ring>& ring, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout)
+    WriteSpan::WriteSpan(const std::weak_ptr<Ring>& ring, std::size_t size, bool nonblocking, std::chrono::nanoseconds timeout)
             : Span(ring, size), m_begin(0), m_commit_size(size), m_data(nullptr) {
-        this->ring()->reserve_span(size, &m_begin, &m_data, nonblocking, timeout);
+        if(auto r = this->ring().lock()){
+            r->reserve_span(size, &m_begin, &m_data, nonblocking, timeout);
+        }
+        else{
+           throw new RBException(RBStatus::STATUS_RING_NOT_AVAILABLE);
+        }
     }
 
     WriteSpan* WriteSpan::commit(std::size_t size) {
@@ -70,7 +75,9 @@ namespace ringbuffer {
     }
 
     WriteSpan::~WriteSpan() {
-        this->ring()->commit_span(m_begin, this->size(), m_commit_size);
+        if(auto r = this->ring().lock()){
+            r->commit_span(m_begin, this->size(), m_commit_size);
+        }
     }
 
     void*       WriteSpan::data()     const { return m_data; }
@@ -85,23 +92,35 @@ namespace ringbuffer {
               m_sequence(sequence), m_begin(0), m_data(nullptr) {
         std::size_t returned_size = requested_size;
         // @todo: this call potentially blocks until data can read
-        this->ring()->acquire_span(sequence, offset, &returned_size, &m_begin, &m_data, timeout);
-        this->set_base_size(returned_size);
+        if(auto r = this->ring().lock()){
+            r->acquire_span(sequence, offset, &returned_size, &m_begin, &m_data, timeout);
+            this->set_base_size(returned_size);
+        } else {
+            throw new RBException(RBStatus::STATUS_RING_NOT_AVAILABLE);
+        }
+        
     }
 
     ReadSpan::~ReadSpan() {
-        this->ring()->release_span(m_sequence, m_begin, this->size());
+        if(auto r = this->ring().lock()){
+            r->release_span(m_sequence, m_begin, this->size());
+        }
     }
 
     std::size_t ReadSpan::size_overwritten() const {
         if( m_sequence->guarantee() ) {
             return 0;
         }
-        const auto ring = this->ring();
-        std::size_t tail = ring->current_tail_offset();
-        return std::max(std::min(delta_type(tail - m_begin),
-                                 delta_type(this->size())),
-                        delta_type(0));
+        if(auto r = this->ring().lock()){
+            std::size_t tail = r->current_tail_offset();
+            return std::max(
+                std::min(delta_type(tail - m_begin), delta_type(this->size())),
+                delta_type(0));
+        } else {
+            throw new RBException(RBStatus::STATUS_RING_NOT_AVAILABLE);
+            return 0;
+        }
+        
     }
 
     void*       ReadSpan::data()     const { return m_data; }

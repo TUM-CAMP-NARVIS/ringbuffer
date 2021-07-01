@@ -47,7 +47,7 @@
 
 namespace ringbuffer {
 
-    Sequence::Sequence(const std::shared_ptr<Ring>& ring,
+    Sequence::Sequence(const std::weak_ptr<Ring>& ring,
                       std::string   name,
                       time_tag_type time_tag,
                       std::size_t   header_size,
@@ -124,18 +124,22 @@ namespace ringbuffer {
 	ReadSequence& ReadSequence::operator=(ReadSequence&&) = default;
 
     void ReadSequence::increment_to_next(std::chrono::nanoseconds timeout) {
-        m_sequence->ring()->increment_sequence_to_next(m_sequence, m_guarantee, timeout);
+        if(auto r = m_sequence->ring().lock()){
+            r->increment_sequence_to_next(m_sequence, m_guarantee, timeout);
+        } else {
+            throw new RBException(RBStatus::STATUS_RING_NOT_AVAILABLE);
+        }
     }
 
 
-    WriteSequence::WriteSequence(const std::shared_ptr<Ring>& ring,
+    WriteSequence::WriteSequence(const std::weak_ptr<Ring>& ring,
                                  const std::string& name,
                                  time_tag_type      time_tag,
                                  std::size_t        header_size,
                                  const void*        header,
                                  std::size_t        nringlet,
                                  std::size_t        offset_from_head)
-            : SequenceWrapper(ring->begin_sequence(name, time_tag,
+            : SequenceWrapper(ring.lock()->begin_sequence(name, time_tag,
                                                    header_size,
                                                    header, nringlet,
                                                    offset_from_head)),
@@ -143,8 +147,12 @@ namespace ringbuffer {
 
 
     void WriteSequence::finish(std::size_t footer_size, void* footer) {
-        this->ring()->finish_sequence(m_sequence, m_end_offset_from_head, footer_size, footer);
-
+        if(auto r = this->ring().lock()){
+            r->finish_sequence(m_sequence, m_end_offset_from_head, footer_size, footer);
+        } else {
+            throw new RBException(RBStatus::STATUS_RING_NOT_AVAILABLE);
+        }
+        
     }
 
     WriteSequence::~WriteSequence() {

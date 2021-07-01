@@ -58,7 +58,7 @@ namespace ringbuffer {
     class RINGBUFFER_EXPORT Sequence {
         friend class Ring;
         enum { RF_SEQUENCE_OPEN = (std::size_t)-1 };
-        std::shared_ptr<Ring> m_ring;
+        std::weak_ptr<Ring> m_ring;
         std::string    m_name;
         time_tag_type  m_time_tag;
         std::size_t    m_nringlet;
@@ -70,7 +70,7 @@ namespace ringbuffer {
         std::size_t    m_readrefcount; // ever used ??
 
     public:
-        Sequence(const std::shared_ptr<Ring>&  ring,
+        Sequence(const std::weak_ptr<Ring>&  ring,
                  std::string   name,
                  time_tag_type time_tag,
                  std::size_t   header_size,
@@ -90,7 +90,7 @@ namespace ringbuffer {
         void set_next(SequencePtr next);
 
         inline bool          is_finished() const { return m_end != RF_SEQUENCE_OPEN; }
-        inline std::shared_ptr<Ring> ring() { return m_ring; }
+        inline std::weak_ptr<Ring> ring() { return m_ring;}
         inline std::string   name()        const { return m_name; }
         inline time_tag_type time_tag()    const { return m_time_tag; }
         inline const void*   header()      const { return m_header.size() ? &m_header[0] : nullptr; }
@@ -117,7 +117,7 @@ namespace ringbuffer {
 
 		inline SequencePtr   sequence()    const { return m_sequence; }
         inline bool          is_finished() const { return m_sequence->is_finished(); }
-        inline std::shared_ptr<Ring> ring() { return m_sequence->ring(); }
+        inline std::weak_ptr<Ring> ring() { return m_sequence->ring(); }
         inline std::string   name()        const { return m_sequence->name(); }
         inline time_tag_type time_tag()    const { return m_sequence->time_tag(); }
         inline const void*   header()      const { return m_sequence->header(); }
@@ -162,7 +162,7 @@ namespace ringbuffer {
         WriteSequence(WriteSequence&& )                 = delete;
         WriteSequence& operator=(WriteSequence&& )      = delete;
 
-        WriteSequence(const std::shared_ptr<Ring>& ring, const std::string& name,
+        WriteSequence(const std::weak_ptr<Ring>& ring, const std::string& name,
                       time_tag_type time_tag, std::size_t header_size,
                       const void* header, std::size_t nringlet,
                       std::size_t offset_from_head=0);
