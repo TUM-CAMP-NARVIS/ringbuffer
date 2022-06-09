@@ -10,7 +10,7 @@ class RingbufferConan(ConanFile):
     python_requires_extend = "camp_common.CampCMakeBase"
 
     name = "ringbuffer"
-    version = "0.2.7"
+    version = "0.2.8"
 
     description = "Ringbuffer Library"
     url = "https://github.com/TUM-CAMP-NARVIS/ringbuffer"
@@ -32,9 +32,9 @@ class RingbufferConan(ConanFile):
     }
 
     requires = (
-        "Boost/[>=1.75]@camposs/stable",
-        "gtest/[>=1.10]",
-        "spdlog/[>=1.9]",
+        "Boost/1.79.0@camposs/stable",
+        "gtest/1.10.0",
+        "spdlog/1.9.1",
         )
 
     default_options = {
